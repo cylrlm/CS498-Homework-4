@@ -1,5 +1,29 @@
-Q1: <your answer>
-Q2: <your answer>
-Q3: <your answer>
-Q4: <your answer>
-Q5: <your answer>
+Q1: FDB decouples the TMS and SS so transactional logic and storage can scale
+independently. The TMS handles transaction coordination and conflict detection 
+entirely in memory, keeping latency low. The SS handles durable key-value storage 
+and serves reads without involvement in coordination logic, allowing each layer to be 
+optimized and recovered separately.
+
+Q2: The Resolver detects read-write conflicts. During commit, the client's Proxy
+forwards the transaction's read set and write set to the Resolver, which checks
+whether any read key was modified by a concurrent committed transaction since
+the transaction's read version. Only conflict-free transactions proceed to logging
+and commit.
+
+Q3: The read version defines a consistent snapshot from which the transaction
+reads, assigned by the Sequencer at transaction start. It ensures the transaction
+sees all commits before that version and none after, providing a stable,
+immutable view. This is the basis of FDB's strict serializability that every
+transaction operates against a well-defined point-in-time snapshot.
+
+Q4: Snapshot reads are excluded from conflict tracking, so concurrent writes to
+snapshot-read keys won't abort the transaction. Standard reads add keys to the
+read set and will conflict if those keys are modified concurrently. Choose snapshot
+reads for informational lookups where you don't base write decisions on the value,
+accepting weaker isolation in exchange for fewer conflicts.
+
+Q5: I think recovery is cheap in FDB because StorageServers continuously apply mutations 
+from LogServers during normal operation, keeping their on-disk state nearly current 
+at all times. When a failure occurs, only unacknowledged log entries need to be applied 
+rather than replaying a full redo log. This makes the recovery window very short and keeps 
+it off the critical path entirely.
